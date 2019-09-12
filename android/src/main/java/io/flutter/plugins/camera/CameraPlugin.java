@@ -4,6 +4,7 @@
 
 package io.flutter.plugins.camera;
 
+import android.graphics.PointF;
 import android.hardware.camera2.CameraAccessException;
 import android.os.Build;
 import androidx.annotation.NonNull;
@@ -27,7 +28,7 @@ public class CameraPlugin implements MethodCallHandler {
     this.registrar = registrar;
     this.view = registrar.view();
     this.imageStreamChannel =
-        new EventChannel(registrar.messenger(), "plugins.flutter.io/camera/imageStream");
+            new EventChannel(registrar.messenger(), "plugins.flutter.io/camera/imageStream");
   }
 
   public static void registerWith(Registrar registrar) {
@@ -39,21 +40,22 @@ public class CameraPlugin implements MethodCallHandler {
     }
 
     final MethodChannel channel =
-        new MethodChannel(registrar.messenger(), "plugins.flutter.io/camera");
+            new MethodChannel(registrar.messenger(), "plugins.flutter.io/camera");
 
-    channel.setMethodCallHandler(new CameraPlugin(registrar));
+    channel.setMethodCallHandler(new io.flutter.plugins.camera.CameraPlugin(registrar));
   }
 
   private void instantiateCamera(MethodCall call, Result result) throws CameraAccessException {
     String cameraName = call.argument("cameraName");
     String resolutionPreset = call.argument("resolutionPreset");
     boolean enableAudio = call.argument("enableAudio");
-    camera = new Camera(registrar.activity(), view, cameraName, resolutionPreset, enableAudio);
+    boolean slowMoMode = call.argument("slowMo");
+    camera = new Camera(registrar.activity(), view, cameraName, resolutionPreset, enableAudio, slowMoMode);
 
     EventChannel cameraEventChannel =
-        new EventChannel(
-            registrar.messenger(),
-            "flutter.io/cameraPlugin/cameraEvents" + camera.getFlutterTexture().id());
+            new EventChannel(
+                    registrar.messenger(),
+                    "flutter.io/cameraPlugin/cameraEvents" + camera.getFlutterTexture().id());
     camera.setupCameraEventChannel(cameraEventChannel);
 
     camera.open(result);
@@ -70,86 +72,101 @@ public class CameraPlugin implements MethodCallHandler {
         }
         break;
       case "initialize":
-        {
-          if (camera != null) {
-            camera.close();
-          }
-          cameraPermissions.requestPermissions(
-              registrar,
-              call.argument("enableAudio"),
-              (String errCode, String errDesc) -> {
-                if (errCode == null) {
-                  try {
-                    instantiateCamera(call, result);
-                  } catch (Exception e) {
-                    handleException(e, result);
+      {
+        if (camera != null) {
+          camera.close();
+        }
+        cameraPermissions.requestPermissions(
+                registrar,
+                call.argument("enableAudio"),
+                (String errCode, String errDesc) -> {
+                  if (errCode == null) {
+                    try {
+                      instantiateCamera(call, result);
+                    } catch (Exception e) {
+                      handleException(e, result);
+                    }
+                  } else {
+                    result.error(errCode, errDesc, null);
                   }
-                } else {
-                  result.error(errCode, errDesc, null);
-                }
-              });
+                });
 
-          break;
-        }
+        break;
+      }
+      case "lockFocus":
+      {
+        double dx = (double) call.argument("dx");
+        double dy = (double) call.argument("dy");
+        PointF point = new PointF((float)dx, (float)dy);
+        camera.lockFocus(point);
+        break;
+      }
+      case "unlockFocus":
+      {
+        camera.unlockFocus();
+        break;
+      }
       case "takePicture":
-        {
-          camera.takePicture(call.argument("path"), result);
-          break;
-        }
+      {
+        camera.flashMode = call.argument("flash");
+        camera.takePicture(call.argument("path"), result);
+        break;
+      }
       case "prepareForVideoRecording":
-        {
-          // This optimization is not required for Android.
-          result.success(null);
-          break;
-        }
+      {
+        // This optimization is not required for Android.
+        result.success(null);
+        break;
+      }
       case "startVideoRecording":
-        {
-          camera.startVideoRecording(call.argument("filePath"), result);
-          break;
-        }
+      {
+        camera.flashMode = call.argument("flash");
+        camera.startVideoRecording(call.argument("filePath"), result);
+        break;
+      }
       case "stopVideoRecording":
-        {
-          camera.stopVideoRecording(result);
-          break;
-        }
+      {
+        camera.stopVideoRecording(result);
+        break;
+      }
       case "pauseVideoRecording":
-        {
-          camera.pauseVideoRecording(result);
-          break;
-        }
+      {
+        camera.pauseVideoRecording(result);
+        break;
+      }
       case "resumeVideoRecording":
-        {
-          camera.resumeVideoRecording(result);
-          break;
-        }
+      {
+        camera.resumeVideoRecording(result);
+        break;
+      }
       case "startImageStream":
-        {
-          try {
-            camera.startPreviewWithImageStream(imageStreamChannel);
-            result.success(null);
-          } catch (Exception e) {
-            handleException(e, result);
-          }
-          break;
-        }
-      case "stopImageStream":
-        {
-          try {
-            camera.startPreview();
-            result.success(null);
-          } catch (Exception e) {
-            handleException(e, result);
-          }
-          break;
-        }
-      case "dispose":
-        {
-          if (camera != null) {
-            camera.dispose();
-          }
+      {
+        try {
+          camera.startPreviewWithImageStream(imageStreamChannel);
           result.success(null);
-          break;
+        } catch (Exception e) {
+          handleException(e, result);
         }
+        break;
+      }
+      case "stopImageStream":
+      {
+        try {
+          camera.startPreview();
+          result.success(null);
+        } catch (Exception e) {
+          handleException(e, result);
+        }
+        break;
+      }
+      case "dispose":
+      {
+        if (camera != null) {
+          camera.dispose();
+        }
+        result.success(null);
+        break;
+      }
       default:
         result.notImplemented();
         break;

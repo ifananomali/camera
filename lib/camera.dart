@@ -243,7 +243,7 @@ class CameraController extends ValueNotifier<CameraValue> {
   CameraController(
     this.description,
     this.resolutionPreset, {
-    this.enableAudio = true,
+    this.enableAudio = false,
   }) : super(const CameraValue.uninitialized());
 
   final CameraDescription description;
@@ -261,7 +261,7 @@ class CameraController extends ValueNotifier<CameraValue> {
   /// Initializes the camera on the device.
   ///
   /// Throws a [CameraException] if the initialization fails.
-  Future<void> initialize() async {
+  Future<void> initialize(bool isSlowMo) async {
     if (_isDisposed) {
       return Future<void>.value();
     }
@@ -274,6 +274,7 @@ class CameraController extends ValueNotifier<CameraValue> {
           'cameraName': description.name,
           'resolutionPreset': serializeResolutionPreset(resolutionPreset),
           'enableAudio': enableAudio,
+          'slowMo': isSlowMo,
         },
       );
       _textureId = reply['textureId'];
@@ -338,7 +339,7 @@ class CameraController extends ValueNotifier<CameraValue> {
   /// The file can be read as this function returns.
   ///
   /// Throws a [CameraException] if the capture fails.
-  Future<void> takePicture(String path) async {
+  Future<void> takePicture(String path, bool flashMode) async {
     if (!value.isInitialized || _isDisposed) {
       throw CameraException(
         'Uninitialized CameraController.',
@@ -355,7 +356,7 @@ class CameraController extends ValueNotifier<CameraValue> {
       value = value.copyWith(isTakingPicture: true);
       await _channel.invokeMethod<void>(
         'takePicture',
-        <String, dynamic>{'textureId': _textureId, 'path': path},
+        <String, dynamic>{'textureId': _textureId, 'path': path, 'flash': flashMode},
       );
       value = value.copyWith(isTakingPicture: false);
     } on PlatformException catch (e) {
@@ -458,7 +459,7 @@ class CameraController extends ValueNotifier<CameraValue> {
   /// The file can be read as soon as [stopVideoRecording] returns.
   ///
   /// Throws a [CameraException] if the capture fails.
-  Future<void> startVideoRecording(String filePath) async {
+  Future<void> startVideoRecording(String filePath, bool flashMode) async {
     if (!value.isInitialized || _isDisposed) {
       throw CameraException(
         'Uninitialized CameraController',
@@ -481,7 +482,7 @@ class CameraController extends ValueNotifier<CameraValue> {
     try {
       await _channel.invokeMethod<void>(
         'startVideoRecording',
-        <String, dynamic>{'textureId': _textureId, 'filePath': filePath},
+        <String, dynamic>{'textureId': _textureId, 'filePath': filePath, 'flash': flashMode},
       );
       value = value.copyWith(isRecordingVideo: true, isRecordingPaused: false);
     } on PlatformException catch (e) {
@@ -583,6 +584,44 @@ class CameraController extends ValueNotifier<CameraValue> {
         <String, dynamic>{'textureId': _textureId},
       );
       await _eventSubscription?.cancel();
+    }
+  }
+
+  /// Focusing
+  Future<void> lockFocus(Offset focalPoint) async {
+    if (!value.isInitialized || _isDisposed) {
+      throw CameraException(
+        'Uninitialized CameraController',
+        'startVideoRecording was called on uninitialized CameraController',
+      );
+    }
+
+    try {
+      await _channel.invokeMethod<void>(
+        'lockFocus',
+        <String, dynamic>{'dx': focalPoint.dx, 'dy': focalPoint.dy},
+      );
+    } on PlatformException catch (e) {
+      throw CameraException(e.code, e.message);
+    }
+  }
+
+  /// Focusing
+  Future<void> unlockFocus() async {
+    if (!value.isInitialized || _isDisposed) {
+      throw CameraException(
+        'Uninitialized CameraController',
+        'startVideoRecording was called on uninitialized CameraController',
+      );
+    }
+
+    try {
+      await _channel.invokeMethod<void>(
+        'unlockFocus',
+        <String, dynamic>{},
+      );
+    } on PlatformException catch (e) {
+      throw CameraException(e.code, e.message);
     }
   }
 }

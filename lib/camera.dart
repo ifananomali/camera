@@ -261,7 +261,7 @@ class CameraController extends ValueNotifier<CameraValue> {
   /// Initializes the camera on the device.
   ///
   /// Throws a [CameraException] if the initialization fails.
-  Future<void> initialize(bool isSlowMo) async {
+  Future<void> initialize(bool isSlowMo, {bool enableMonoMode = false}) async {
     if (_isDisposed) {
       return Future<void>.value();
     }
@@ -275,6 +275,7 @@ class CameraController extends ValueNotifier<CameraValue> {
           'resolutionPreset': serializeResolutionPreset(resolutionPreset),
           'enableAudio': enableAudio,
           'slowMo': isSlowMo,
+          'enableMonoMode': enableMonoMode
         },
       );
       _textureId = reply['textureId'];

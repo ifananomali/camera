@@ -55,6 +55,7 @@ public class Camera {
   private CaptureRequest.Builder captureRequestBuilder;
   private MediaRecorder mediaRecorder;
   private boolean recordingVideo;
+  private boolean supportMonoEffect = false;
   private boolean isFocusLocked = false;
   private CamcorderProfile recordingProfile;
   private int currentOrientation = ORIENTATION_UNKNOWN;
@@ -105,6 +106,14 @@ public class Camera {
     orientationEventListener.enable();
 
     CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraName);
+    int[] effects = characteristics.get(CameraCharacteristics.CONTROL_AVAILABLE_EFFECTS);
+
+    for (int effect : effects) {
+      if (effect == 1) { // MONO
+        supportMonoEffect = true;
+      }
+    }
+
     StreamConfigurationMap streamConfigurationMap =
         characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
     //noinspection ConstantConditions
@@ -227,7 +236,7 @@ public class Camera {
     mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
     if (enableAudio) mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
     mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-    mediaRecorder.setVideoEncodingBitRate(1280000000);
+    mediaRecorder.setVideoEncodingBitRate(2000000000);
     if (enableAudio) mediaRecorder.setAudioSamplingRate(16000);
     mediaRecorder.setVideoFrameRate(240);
     mediaRecorder.setVideoSize(mVideoSize.getWidth(), mVideoSize.getHeight());
@@ -349,6 +358,10 @@ public class Camera {
       captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getMediaOrientation());
       captureBuilder.set(CaptureRequest.JPEG_QUALITY, (byte) 100);
 
+      if (supportMonoEffect) {
+        captureBuilder.set(CaptureRequest.CONTROL_EFFECT_MODE, CaptureRequest.CONTROL_EFFECT_MODE_MONO);
+      }
+
       if (flashMode) {
         captureBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH);
       } else {
@@ -424,6 +437,8 @@ public class Camera {
               cameraCaptureSession = session;
               captureRequestBuilder.set(
                   CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+              captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_EDOF);
+
               cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, null);
               if (onSuccessCallback != null) {
                 onSuccessCallback.run();
@@ -452,6 +467,10 @@ public class Camera {
     //Range<Integer> fpsRange = getHighestFpsRange(availableFpsRange);
     builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, fpsRange);
     builder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);
+
+    if (supportMonoEffect) {
+      builder.set(CaptureRequest.CONTROL_EFFECT_MODE, CaptureRequest.CONTROL_EFFECT_MODE_MONO);
+    }
   }
 
   private void updatePreview() {
@@ -497,6 +516,10 @@ public class Camera {
         captureRequestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH);
       } else {
         captureRequestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF);
+      }
+
+      if (supportMonoEffect) {
+        captureRequestBuilder.set(CaptureRequest.CONTROL_EFFECT_MODE, CaptureRequest.CONTROL_EFFECT_MODE_MONO);
       }
 
       List<Surface> surfaces = new ArrayList<>();
@@ -643,6 +666,10 @@ public class Camera {
     SurfaceTexture surfaceTexture = flutterTexture.surfaceTexture();
     surfaceTexture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
     captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+
+    if (supportMonoEffect) {
+      captureRequestBuilder.set(CaptureRequest.CONTROL_EFFECT_MODE, CaptureRequest.CONTROL_EFFECT_MODE_MONO);
+    }
 
     List<Surface> surfaces = new ArrayList<>();
 

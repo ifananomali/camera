@@ -80,13 +80,28 @@ previewPhotoSampleBuffer:(CMSampleBufferRef)previewPhotoSampleBuffer
     UIImage *image = [UIImage imageWithCGImage:[UIImage imageWithData:data].CGImage
                                          scale:1.0
                                    orientation:[self getImageRotation]];
+    
+    UIImage *greyImage = [self grayscaleImage:image];
+    
     // TODO(sigurdm): Consider writing file asynchronously.
-    bool success = [UIImageJPEGRepresentation(image, 1.0) writeToFile:_path atomically:YES];
+    bool success = [UIImageJPEGRepresentation(greyImage, 1.0) writeToFile:_path atomically:YES];
     if (!success) {
         _result([FlutterError errorWithCode:@"IOError" message:@"Unable to write file" details:nil]);
         return;
     }
     _result(nil);
+}
+
+- (UIImage *)grayscaleImage:(UIImage *)image {
+    CIImage *ciImage = [[CIImage alloc] initWithImage:image];
+    if (@available(iOS 11.0, *)) {
+        CIImage *grayscale = [ciImage imageByApplyingFilter:@"CIPhotoEffectMono"];
+        return [UIImage imageWithCIImage:grayscale];
+    } else {
+        CIImage *grayscale = [ciImage imageByApplyingFilter:@"CIColorControls"
+            withInputParameters: @{kCIInputSaturationKey : @0.0}];
+        return [UIImage imageWithCIImage:grayscale];
+    }
 }
 
 - (UIImageOrientation)getImageRotation {

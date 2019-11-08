@@ -49,8 +49,9 @@ public class CameraPlugin implements MethodCallHandler {
     String cameraName = call.argument("cameraName");
     String resolutionPreset = call.argument("resolutionPreset");
     boolean enableAudio = call.argument("enableAudio");
+    boolean enableMonoMode = call.argument("enableMonoMode");
     boolean slowMoMode = call.argument("slowMo");
-    camera = new Camera(registrar.activity(), view, cameraName, resolutionPreset, enableAudio, slowMoMode);
+    camera = new Camera(registrar.activity(), view, cameraName, resolutionPreset, enableAudio, enableMonoMode, slowMoMode);
 
     EventChannel cameraEventChannel =
             new EventChannel(

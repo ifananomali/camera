@@ -45,6 +45,7 @@ public class Camera {
   private final Size captureSize;
   private final boolean enableAudio;
   private final boolean slowMoMode;
+  private final boolean enableMonoMode;
 
   private CameraDevice cameraDevice;
   private CameraCaptureSession cameraCaptureSession;
@@ -81,6 +82,7 @@ public class Camera {
       final String cameraName,
       final String resolutionPreset,
       final boolean enableAudio,
+      final boolean enableMonoMode,
       final boolean slowMoMode)
       throws CameraAccessException {
     if (activity == null) {
@@ -90,6 +92,7 @@ public class Camera {
     this.cameraName = cameraName;
     this.enableAudio = enableAudio;
     this.slowMoMode = slowMoMode;
+    this.enableMonoMode = enableMonoMode;
     this.flutterTexture = flutterView.createSurfaceTexture();
     this.cameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
     orientationEventListener =
@@ -358,7 +361,7 @@ public class Camera {
       captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getMediaOrientation());
       captureBuilder.set(CaptureRequest.JPEG_QUALITY, (byte) 100);
 
-      if (supportMonoEffect) {
+      if (supportMonoEffect && enableMonoMode) {
         captureBuilder.set(CaptureRequest.CONTROL_EFFECT_MODE, CaptureRequest.CONTROL_EFFECT_MODE_MONO);
       }
 
@@ -468,7 +471,7 @@ public class Camera {
     builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, fpsRange);
     builder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);
 
-    if (supportMonoEffect) {
+    if (supportMonoEffect && enableMonoMode) {
       builder.set(CaptureRequest.CONTROL_EFFECT_MODE, CaptureRequest.CONTROL_EFFECT_MODE_MONO);
     }
   }
@@ -518,7 +521,7 @@ public class Camera {
         captureRequestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF);
       }
 
-      if (supportMonoEffect) {
+      if (supportMonoEffect && enableMonoMode) {
         captureRequestBuilder.set(CaptureRequest.CONTROL_EFFECT_MODE, CaptureRequest.CONTROL_EFFECT_MODE_MONO);
       }
 
@@ -667,7 +670,7 @@ public class Camera {
     surfaceTexture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
     captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
 
-    if (supportMonoEffect) {
+    if (supportMonoEffect && enableMonoMode) {
       captureRequestBuilder.set(CaptureRequest.CONTROL_EFFECT_MODE, CaptureRequest.CONTROL_EFFECT_MODE_MONO);
     }
 
